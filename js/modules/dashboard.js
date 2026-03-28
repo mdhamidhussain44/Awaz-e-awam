@@ -11,7 +11,7 @@ window.AwazApp.renderDashboard = (container) => {
     const pending = data.filter(r => r.status === 'pending').length;
 
     container.innerHTML = `
-        <div class="dashboard-view">
+        <div class="dashboard-view" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem;">
             <div class="stat-card">
                 <div class="stat-value">${total}</div>
                 <div class="stat-label">Total Reports Received</div>

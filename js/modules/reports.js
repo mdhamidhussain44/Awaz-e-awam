@@ -1,19 +1,26 @@
 window.AwazApp = window.AwazApp || {};
 
-window.AwazApp = window.AwazApp || {};
+// Data Persistence Logic
+// Initialize reportsData from localStorage or fallback to the INITIAL_REPORTS_DATA from data.js
+const loadReports = () => {
+    const saved = localStorage.getItem('awaz_reports_v1');
+    if (saved) {
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            console.error("Failed to parse saved reports:", e);
+        }
+    }
+    return window.AwazApp.INITIAL_REPORTS_DATA || [];
+};
 
-// Persistent state for reports moved to global app object
-// We check if it exists AND has data; if not, we populate with defaults
-if (!window.AwazApp.reportsData || window.AwazApp.reportsData.length === 0) {
-    window.AwazApp.reportsData = [
-        { id: 1, status: 'pending', title: 'Large Pot Hole on Main Road', desc: 'Significant hazard near Ameerpet intersection. Traffic slowed down.', location: 'Ameerpet', time: '2 hours ago', department: 'Public Works', notes: '' },
-        { id: 2, status: 'in-progress', title: 'Broken Street Light', desc: 'Entire block is dark near Banjara Hills, causing safety concerns.', location: 'Banjara Hills', time: '5 hours ago', department: 'Electricity Dept', notes: 'Team dispatched to investigate.' },
-        { id: 3, status: 'resolved', title: 'Overflowing Garbage Bin', desc: 'Waste management team has cleared the area near Jubilee Hills.', location: 'Jubilee Hills', time: '1 day ago', department: 'Sanitation', notes: 'Cleared at 8 AM.' },
-        { id: 4, status: 'pending', title: 'Water Leakage', desc: 'Main water line burst in Madhapur, causing flood in the street.', location: 'Madhapur', time: '30 mins ago', department: 'Water Board', notes: '' },
-        { id: 5, status: 'resolved', title: 'Traffic Signal Malfunction', desc: 'Lights fixed at the Panjagutta roundabout.', location: 'Panjagutta', time: '3 hours ago', department: 'Traffic Control', notes: 'Signal relay replaced.' },
-        { id: 6, status: 'in-progress', title: 'Illegal Dumping', desc: 'Piles of construction waste blocking the sidewalk in Somajiguda.', location: 'Somajiguda', time: '8 hours ago', department: 'Sanitation', notes: 'Truck scheduled for pickup tomorrow.' }
-    ];
-}
+// Helper to save current state to localStorage
+const saveReports = () => {
+    localStorage.setItem('awaz_reports_v1', JSON.stringify(window.AwazApp.reportsData));
+};
+
+// Global state initialization
+window.AwazApp.reportsData = loadReports();
 
 window.AwazApp.renderReports = (container, modalContainer) => {
     container.innerHTML = `
@@ -36,7 +43,7 @@ window.AwazApp.renderReports = (container, modalContainer) => {
             </div>
         </header>
 
-        <div class="reports-grid" id="reports-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+        <div class="reports-grid" id="reports-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
             <!-- Report cards will be injected here -->
         </div>
     `;
@@ -162,6 +169,9 @@ window.AwazApp.renderReports = (container, modalContainer) => {
             report.department = formData.get('department');
             report.notes = formData.get('notes');
 
+            // Persist to LocalStorage
+            saveReports();
+
             // Success feedback
             modalContainer.innerHTML = `
                 <div class="modal-content animate-in" style="text-align: center; padding: 3rem;">
@@ -250,6 +260,9 @@ window.AwazApp.renderReports = (container, modalContainer) => {
 
             window.AwazApp.reportsData.unshift(newReport);
             
+            // Persist to LocalStorage
+            saveReports();
+
             // Success Feedback
             modalContainer.innerHTML = `
                 <div class="modal-content animate-in" style="text-align: center; padding: 3rem;">

@@ -22,6 +22,21 @@ const saveReports = () => {
 // Global state initialization
 window.AwazApp.reportsData = loadReports();
 
+// Helper to get current location coordinates
+const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('Geolocation not supported'));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            (err) => reject(err),
+            { timeout: 10000 }
+        );
+    });
+};
+
 window.AwazApp.renderReports = (container, modalContainer) => {
     container.innerHTML = `
         <header class="view-header" style="margin-bottom: 2rem;">
@@ -115,18 +130,26 @@ window.AwazApp.renderReports = (container, modalContainer) => {
         modalContainer.classList.remove('hidden');
         modalContainer.innerHTML = `
             <div class="modal-content animate-in" style="max-width: 500px;">
-                <button id="modal-close" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                <button id="modal-close" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer;">&times;</button>
                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2 4-4"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 10h8"/><path d="M13 14h8"/><path d="M5 6h4"/><path d="M5 10h4"/></svg>
                     <h2 style="font-size: 1.5rem; font-weight: 700;">Update Ticket State</h2>
                 </div>
                 <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.85rem;">Ticket #${report.id} in ${report.location}</p>
 
-                <form id="management-form" style="display: grid; gap: 1.5rem;">
+                <form id="management-form" style="display: grid; gap: 1.25rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--text-muted); text-transform: uppercase;">Modified By (Admin Name)</label>
+                        <input type="text" name="modifier" required 
+                               value="${window.AwazApp.currentUser ? window.AwazApp.currentUser.name : ''}" 
+                               ${window.AwazApp.currentUser ? 'readonly style="background: rgba(255,255,255,0.02); opacity: 0.8; cursor: not-allowed; width: 100%; color: var(--text-main); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); outline: none;"' : 'style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; outline: none;"'}
+                               placeholder="e.g. Officer Naresh">
+                    </div>
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div>
                             <label style="display: block; font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--text-muted); text-transform: uppercase;">Current State</label>
-                            <select name="status" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: white; padding: 0.75rem; border-radius: 8px; outline: none;">
+                            <select name="status" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; outline: none;">
                                 <option value="pending" ${report.status === 'pending' ? 'selected' : ''}>Pending</option>
                                 <option value="in-progress" ${report.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
                                 <option value="resolved" ${report.status === 'resolved' ? 'selected' : ''}>Resolved</option>
@@ -134,7 +157,7 @@ window.AwazApp.renderReports = (container, modalContainer) => {
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--text-muted); text-transform: uppercase;">Assigned Dept</label>
-                            <select name="department" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: white; padding: 0.75rem; border-radius: 8px; outline: none;">
+                            <select name="department" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; outline: none;">
                                 <option value="Public Works" ${report.department === 'Public Works' ? 'selected' : ''}>Public Works</option>
                                 <option value="Sanitation" ${report.department === 'Sanitation' ? 'selected' : ''}>Sanitation</option>
                                 <option value="Health" ${report.department === 'Health' ? 'selected' : ''}>Health</option>
@@ -147,10 +170,29 @@ window.AwazApp.renderReports = (container, modalContainer) => {
 
                     <div>
                         <label style="display: block; font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--text-muted); text-transform: uppercase;">Departmental Notes</label>
-                        <textarea name="notes" placeholder="e.g. Work started, estimated completion by tomorrow..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: white; padding: 0.75rem; border-radius: 8px; height: 100px; resize: none; outline: none;">${report.notes || ''}</textarea>
+                        <textarea name="notes" placeholder="e.g. Work started, estimated completion by tomorrow..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem; border-radius: 8px; height: 100px; resize: none; outline: none;">${report.notes || ''}</textarea>
                     </div>
 
                     <button type="submit" style="width: 100%; background: var(--accent-teal); color: white; padding: 0.8rem; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2);">Save Changes & Notify</button>
+                    
+                    <div style="margin-top: 1.5rem;">
+                        <h3 style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                            Action History
+                        </h3>
+                        <div id="history-log" style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.1); border-radius: 8px; border: 1px solid var(--border-color); padding: 0.5rem;">
+                            ${report.logs && report.logs.length > 0 ? report.logs.map(log => `
+                                <div style="padding: 0.6rem; border-bottom: 1px solid var(--border-color); font-size: 0.8rem;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                                        <span style="font-weight: 700; color: var(--accent-teal);">${log.user}</span>
+                                        <span style="color: var(--text-muted); font-size: 0.7rem;">${log.time}</span>
+                                    </div>
+                                    <div style="color: var(--text-main); line-height: 1.4;">${log.action}</div>
+                                </div>
+                            `).reverse().join('') : '<div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.8rem;">No previous activity</div>'}
+                        </div>
+                    </div>
+
                     <button type="button" id="modal-cancel" style="width: 100%; background: transparent; color: var(--text-muted); padding: 0.4rem; border: none; cursor: pointer;">Cancel</button>
                 </form>
             </div>
@@ -163,11 +205,36 @@ window.AwazApp.renderReports = (container, modalContainer) => {
         form.onsubmit = (e) => {
             e.preventDefault();
             const formData = new FormData(form);
-            
+            const modifier = formData.get('modifier');
+            const newStatus = formData.get('status');
+            const newDept = formData.get('department');
+            const newNotes = formData.get('notes');
+
+            // Tracking changes for the log
+            let changes = [];
+            if (newStatus !== report.status) changes.push(`Status: ${report.status} → ${newStatus}`);
+            if (newDept !== report.department) changes.push(`Dept: ${report.department} → ${newDept}`);
+            if (newNotes !== report.notes) changes.push(`Updated departmental notes`);
+
+            if (changes.length === 0 && newNotes === report.notes) {
+                alert("No changes detected.");
+                return;
+            }
+
             // Apply updates
-            report.status = formData.get('status');
-            report.department = formData.get('department');
-            report.notes = formData.get('notes');
+            report.status = newStatus;
+            report.department = newDept;
+            report.notes = newNotes;
+
+            // Initialize logs if missing
+            if (!report.logs) report.logs = [];
+            
+            // Push new log entry
+            report.logs.push({
+                time: new Date().toLocaleString(),
+                user: modifier,
+                action: changes.join(', ') || "Updated ticket details"
+            });
 
             // Persist to LocalStorage
             saveReports();
@@ -197,7 +264,7 @@ window.AwazApp.renderReports = (container, modalContainer) => {
         modalContainer.classList.remove('hidden');
         modalContainer.innerHTML = `
             <div class="modal-content animate-in" style="max-width: 600px;">
-                <button id="modal-close" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer; transition: transform 0.2s;">&times;</button>
+                <button id="modal-close" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; transition: transform 0.2s;">&times;</button>
                 
                 <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--accent-teal);">Report a New Issue</h2>
                 <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem;">Contribute to your community by reporting civic problems in real-time.</p>
@@ -205,13 +272,13 @@ window.AwazApp.renderReports = (container, modalContainer) => {
                 <form id="report-form" style="display: grid; gap: 1.25rem;">
                     <div>
                         <label style="display: block; font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-muted);">Issue Title</label>
-                        <input type="text" name="title" required placeholder="e.g., Pothole on High Street" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: white; padding: 0.75rem 1rem; border-radius: 8px; outline: none; transition: border-color 0.3s;">
+                        <input type="text" name="title" required placeholder="e.g., Pothole on High Street" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem 1rem; border-radius: 8px; outline: none; transition: border-color 0.3s;">
                     </div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div>
                             <label style="display: block; font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-muted);">Category</label>
-                            <select name="category" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: white; padding: 0.75rem 1rem; border-radius: 8px; outline: none; cursor: pointer;">
+                            <select name="category" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem 1rem; border-radius: 8px; outline: none; cursor: pointer;">
                                 <option value="Infrastructure">Infrastructure</option>
                                 <option value="Sanitation">Sanitation</option>
                                 <option value="Safety">Safety</option>
@@ -221,13 +288,18 @@ window.AwazApp.renderReports = (container, modalContainer) => {
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-muted);">Location</label>
-                            <input type="text" name="location" required placeholder="e.g., Ameerpet" style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: white; padding: 0.75rem 1rem; border-radius: 8px; outline: none;">
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" id="report-location" name="location" placeholder="e.g., Ameerpet" style="flex-grow: 1; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem 1rem; border-radius: 8px; outline: none;">
+                                <button type="button" id="btn-detect-loc" title="Detect Current Location" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--accent-teal); padding: 0.75rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
                     <div>
                         <label style="display: block; font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-muted);">Description</label>
-                        <textarea name="desc" required placeholder="Please describe the issue in detail..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: white; padding: 0.75rem 1rem; border-radius: 8px; height: 100px; resize: none; outline: none;"></textarea>
+                        <textarea name="desc" required placeholder="Please describe the issue in detail..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem 1rem; border-radius: 8px; height: 100px; resize: none; outline: none;"></textarea>
                     </div>
 
                     <div style="padding: 1rem; border: 2px dashed var(--border-color); border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-teal)'" onmouseout="this.style.borderColor='var(--border-color)'">
@@ -242,20 +314,54 @@ window.AwazApp.renderReports = (container, modalContainer) => {
 
         document.getElementById('modal-close').onclick = () => modalContainer.classList.add('hidden');
         
+        const detectBtn = document.getElementById('btn-detect-loc');
+        const locInput = document.getElementById('report-location');
+
+        detectBtn.onclick = async () => {
+            detectBtn.style.opacity = '0.5';
+            detectBtn.innerHTML = '<div class="loader" style="width:16px; height:16px; border-width:2px;"></div>';
+            try {
+                const pos = await getCurrentLocation();
+                locInput.value = `Current Location (${pos.lat.toFixed(2)}, ${pos.lng.toFixed(2)})`;
+                detectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+            } catch (err) {
+                console.error("Location error:", err);
+                alert("Could not detect location. Please enter it manually.");
+                detectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+            }
+            detectBtn.style.opacity = '1';
+        };
+        
         const form = document.getElementById('report-form');
-        form.onsubmit = (e) => {
+        form.onsubmit = async (e) => {
             e.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Processing...";
+
             const formData = new FormData(form);
+            let locationName = formData.get('location');
+
+            // Fallback to location detection if empty
+            if (!locationName) {
+                try {
+                    const pos = await getCurrentLocation();
+                    locationName = `Current Location (${pos.lat.toFixed(2)}, ${pos.lng.toFixed(2)})`;
+                } catch (err) {
+                    locationName = "Undisclosed Location";
+                }
+            }
             
             const newReport = {
                 id: Date.now(),
                 status: 'pending',
                 title: formData.get('title'),
                 desc: formData.get('desc'),
-                location: formData.get('location'),
+                location: locationName,
                 time: 'Just now',
                 department: formData.get('category'),
-                notes: ''
+                notes: '',
+                logs: []
             };
 
             window.AwazApp.reportsData.unshift(newReport);

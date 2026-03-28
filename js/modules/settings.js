@@ -4,7 +4,7 @@ window.AwazApp.initSettings = (modalContainer) => {
         modalContainer.classList.remove('hidden');
         modalContainer.innerHTML = `
             <div class="modal-content animate-in">
-                <button id="modal-close" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                <button id="modal-close" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer;">&times;</button>
                 <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">Control Panel</h2>
                 <p style="color: var(--text-muted); margin-bottom: 2rem;">Manage your preferences and notification settings.</p>
                 <div class="settings-list">

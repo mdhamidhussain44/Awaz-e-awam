@@ -1,109 +1,59 @@
 window.AwazApp = window.AwazApp || {};
+
 window.AwazApp.renderMap = (container) => {
     container.innerHTML = `
         <header class="map-header">
-            <div>Interactive Urban Map</div>
-            <div style="font-size: 0.8rem; color: var(--accent-teal);">Click to simulate report pins</div>
-        </header>
-        <div class="map-wrapper" style="position: relative; flex-grow: 1; min-height: 500px; display: flex; align-items: center; justify-content: center; background: #000;">
-            <canvas id="map-canvas" style="width: 100%; height: 100%; background: #0f172a;"></canvas>
-            <div id="map-tooltip" style="position: absolute; pointer-events: none; visibility: hidden; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--accent-teal); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; z-index: 10;">
-                <h4 id="tooltip-title"></h4>
-                <p id="tooltip-desc" style="font-size: 0.8rem; color: var(--text-muted);"></p>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                <div style="font-weight: 600;">Ameerpet, Hyderabad</div>
             </div>
+            <div style="font-size: 0.8rem; color: var(--accent-teal); background: rgba(20, 184, 166, 0.1); padding: 0.25rem 0.75rem; border-radius: 999px;">Live Urban Grid</div>
+        </header>
+        <div class="map-wrapper" style="position: relative; flex-grow: 1; min-height: 500px;">
+            <div id="map-container"></div>
         </div>
     `;
 
-    const canvas = document.getElementById('map-canvas');
-    const ctx = canvas.getContext('2d');
-    const tooltip = document.getElementById('map-tooltip');
-    const tooltipTitle = document.getElementById('tooltip-title');
-    const tooltipDesc = document.getElementById('tooltip-desc');
+    // Coordinates for Ameerpet, Hyderabad
+    const ameerpetCoords = [17.4375, 78.4485];
+    
+    // Initialize Leaflet map
+    // We delay slightly to ensure the container is fully rendered in the DOM
+    setTimeout(() => {
+        const map = L.map('map-container').setView(ameerpetCoords, 14);
 
-    let w, h;
-    const pins = [
-        { x: 200, y: 150, title: 'Road Damage', desc: 'Ameerpet Cross Road', color: '#eab308' },
-        { x: 450, y: 320, title: 'Water Leak', desc: 'Madhapur Metro Pillar', color: '#3b82f6' },
-        { x: 600, y: 120, title: 'Broken Light', desc: 'Banjara Hills Rd No. 1', color: '#eab308' },
-        { x: 120, y: 400, title: 'Sanitation Issue', desc: 'Jubilee Hills Check Post', color: '#22c55e' }
-    ];
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-    const resize = () => {
-        const rect = canvas.parentNode.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        w = canvas.width;
-        h = canvas.height;
-        draw();
-    };
+        // Simulated issues mapped to real coordinates around Ameerpet
+        const mapPins = [
+            { coords: [17.4395, 78.4485], title: 'Road Damage', desc: 'Major pothole near Ameerpet Metro Station.', status: 'pending', color: '#eab308' },
+            { coords: [17.4355, 78.4445], title: 'Water Leak', desc: 'Main pipe burst near Mythrivanam.', status: 'in-progress', color: '#3b82f6' },
+            { coords: [17.4415, 78.4525], title: 'Broken Light', desc: 'Street light out on BK Guda Road.', status: 'pending', color: '#eab308' },
+            { coords: [17.4325, 78.4485], title: 'Overflowing Bin', desc: 'Sanitation issue near Big Bazaar.', status: 'resolved', color: '#22c55e' }
+        ];
 
-    const draw = () => {
-        ctx.clearRect(0, 0, w, h);
-        
-        // Draw grid
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < w; i += 50) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, h);
-            ctx.stroke();
-        }
-        for (let i = 0; i < h; i += 50) {
-            ctx.beginPath();
-            ctx.moveTo(0, i);
-            ctx.lineTo(w, i);
-            ctx.stroke();
-        }
+        mapPins.forEach(pin => {
+            const marker = L.circleMarker(pin.coords, {
+                radius: 8,
+                fillColor: pin.color,
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
 
-        // Draw pins
-        pins.forEach(pin => {
-            // Glow
-            ctx.beginPath();
-            const gradient = ctx.createRadialGradient(pin.x, pin.y, 0, pin.x, pin.y, 15);
-            gradient.addColorStop(0, pin.color + '66');
-            gradient.addColorStop(1, 'transparent');
-            ctx.fillStyle = gradient;
-            ctx.arc(pin.x, pin.y, 15, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Center
-            ctx.beginPath();
-            ctx.fillStyle = pin.color;
-            ctx.arc(pin.x, pin.y, 4, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        });
-    };
-
-    canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        let found = false;
-        pins.forEach(pin => {
-            const dist = Math.sqrt((mouseX - pin.x) ** 2 + (mouseY - pin.y) ** 2);
-            if (dist < 15) {
-                tooltip.style.visibility = 'visible';
-                tooltip.style.left = (pin.x + 10) + 'px';
-                tooltip.style.top = (pin.y - 40) + 'px';
-                tooltipTitle.innerText = pin.title;
-                tooltipDesc.innerText = pin.desc;
-                found = true;
-                canvas.style.cursor = 'pointer';
-            }
+            marker.bindPopup(`
+                <div style="color: white;">
+                    <strong style="color: var(--accent-teal); display: block; margin-bottom: 4px;">${pin.title}</strong>
+                    <p style="font-size: 0.8rem; margin: 0; opacity: 0.8;">${pin.desc}</p>
+                    <span style="display: inline-block; margin-top: 8px; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: ${pin.color}">${pin.status}</span>
+                </div>
+            `);
         });
 
-        if (!found) {
-            tooltip.style.visibility = 'hidden';
-            canvas.style.cursor = 'crosshair';
-        }
-    });
-
-    window.addEventListener('resize', resize);
-    resize();
+        // Trigger map resize to fix gray tile issues in SPAs
+        setTimeout(() => map.invalidateSize(), 100);
+    }, 100);
 };

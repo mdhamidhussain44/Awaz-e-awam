@@ -4,6 +4,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.querySelector('.search-container input');
     const navItems = document.querySelectorAll('.nav-item');
 
+    // Theme Management
+    const initTheme = () => {
+        const savedTheme = localStorage.getItem('awaz-theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcons(savedTheme);
+    };
+
+    const updateThemeIcons = (theme) => {
+        const darkIcon = document.getElementById('theme-icon-dark');
+        const lightIcon = document.getElementById('theme-icon-light');
+        if (theme === 'dark') {
+            darkIcon.style.display = 'none';
+            lightIcon.style.display = 'block';
+        } else {
+            darkIcon.style.display = 'block';
+            lightIcon.style.display = 'none';
+        }
+    };
+
+    const toggleTheme = () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('awaz-theme', newTheme);
+        updateThemeIcons(newTheme);
+    };
+
+    initTheme();
+
     // Navigation and View Switching (Routing)
     const switchView = (viewId) => {
         // Clear active classes
@@ -74,6 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.tagName === 'A') e.preventDefault();
             
             const id = item.id;
+            
+            if (id === 'nav-theme') {
+                toggleTheme();
+                return;
+            }
+
             // Only switch view for the first 4 main navigation items
             if (['nav-dashboard', 'nav-report', 'nav-map', 'nav-analytics'].includes(id)) {
                 switchView(id);

@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
+  /* Default Dark Theme Variables */
   --bg-dark: #0f172a;
   --bg-card: rgba(30, 41, 59, 0.7);
   --accent-teal: #14b8a6;
@@ -10,6 +11,24 @@
   --border-color: rgba(255, 255, 255, 0.1);
   --glass-bg: rgba(15, 23, 42, 0.8);
   --glass-blur: blur(12px);
+  --section-header-bg: rgba(0, 0, 0, 0.2);
+  --card-item-bg: rgba(255, 255, 255, 0.03);
+  --card-item-hover: rgba(255, 255, 255, 0.05);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] {
+  --bg-dark: #f1f5f9;
+  --bg-card: #ffffff;
+  --accent-teal: #0d9488;
+  --accent-teal-hover: #0f766e;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --section-header-bg: rgba(0, 0, 0, 0.03);
+  --card-item-bg: rgba(0, 0, 0, 0.02);
+  --card-item-hover: rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -24,6 +43,7 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 /* Navbar Styling */
@@ -174,7 +194,7 @@ body {
 .map-header {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
-  background: rgba(0,0,0,0.2);
+  background: var(--section-header-bg);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -202,7 +222,7 @@ body {
 .feed-header {
   padding: 1.25rem;
   border-bottom: 1px solid var(--border-color);
-  background: rgba(0,0,0,0.2);
+  background: var(--section-header-bg);
   font-weight: 600;
 }
 
@@ -213,7 +233,7 @@ body {
 }
 
 .report-card {
-  background: rgba(255,255,255,0.03);
+  background: var(--card-item-bg);
   border: 1px solid var(--border-color);
   padding: 1rem;
   border-radius: 0.75rem;
@@ -224,7 +244,7 @@ body {
 
 .report-card:hover {
   transform: translateY(-2px);
-  background: rgba(255,255,255,0.05);
+  background: var(--card-item-hover);
   border-color: rgba(20, 184, 166, 0.3);
 }
 
@@ -347,9 +367,45 @@ body {
   font-size: 0.9rem;
 }
 
-/* Canvas Styles */
 #map-canvas {
   width: 100%;
   height: 100%;
   cursor: crosshair;
+}
+
+/* Leaflet Map Styles */
+#map-container {
+    width: 100%;
+    height: 100%;
+    background: #0f172a;
+    z-index: 1;
+}
+
+.leaflet-container {
+    background: #0f172a !important;
+}
+
+/* Dark Mode Map Filter */
+.leaflet-tile-pane {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+[data-theme="light"] .leaflet-tile-pane {
+    filter: none;
+}
+
+.leaflet-control-zoom-in, .leaflet-control-zoom-out {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background-color: var(--bg-dark) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color);
+}
+
+.leaflet-popup-content {
+    font-family: 'Inter', sans-serif;
 }
